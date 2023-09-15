@@ -1,5 +1,4 @@
 import subprocess
-import os
 from typing import Dict, Optional
 import yaml
 
@@ -66,11 +65,6 @@ class DockerManager:
         command = ["docker", "compose", "-p", "hummingbot-broker", "-f",
                    "hummingbot_files/compose_files/broker-compose.yml", "up", "-d", "--remove-orphans"]
         subprocess.Popen(command)
-  
-    @staticmethod
-    def log_to_file(message, log_file):
-        with open(log_file, "a") as f:
-            f.write(f"{message}\n")
 
     def create_hummingbot_instance(self, instance_name: str,
                                    base_conf_folder: str,
@@ -78,13 +72,6 @@ class DockerManager:
                                    controllers_folder: Optional[str] = None,
                                    controllers_config_folder: Optional[str] = None,
                                    image: str = "hummingbot/hummingbot:latest"):
-
-        log_file_path = os.path.join(target_conf_folder, "copy_logs.txt")
-       
-        # Log content before copying
-        self.log_to_file(f"Content of {base_conf_folder} before copying: {os.listdir(base_conf_folder)}", log_file_path)
-        self.log_to_file(f"Content of {target_conf_folder} before copying: {os.listdir(target_conf_folder)}", log_file_path)
-
         if not os_utils.directory_exists(target_conf_folder):
             create_folder_command = ["mkdir", "-p", target_conf_folder]
             create_folder_task = subprocess.Popen(create_folder_command)
@@ -92,17 +79,7 @@ class DockerManager:
             command = ["cp", "-rf", base_conf_folder, target_conf_folder]
             copy_folder_task = subprocess.Popen(command)
             copy_folder_task.wait()
-
-        # Log content after copying
-        self.log_to_file(f"Content of {base_conf_folder} after copying: {os.listdir(base_conf_folder)}", log_file_path)
-        self.log_to_file(f"Content of {target_conf_folder} after copying: {os.listdir(target_conf_folder)}", log_file_path)
-
-
         if controllers_folder and controllers_config_folder:
-            # Log content before copying
-            self.log_to_file(f"Content of {controllers_folder} before copying: {os.listdir(controllers_folder)}")
-            self.log_to_file(f"Content of {controllers_config_folder} before copying: {os.listdir(controllers_config_folder)}")
-            
             # Copy controllers folder
             command = ["cp", "-rf", controllers_folder, target_conf_folder]
             t1 = subprocess.Popen(command)
@@ -111,18 +88,10 @@ class DockerManager:
             t2 = subprocess.Popen(command)
             t1.wait()
             t2.wait()
-
-            # Log content after copying
-            self.log_to_file(f"Content of {controllers_folder} after copying: {os.listdir(controllers_folder)}")
-            self.log_to_file(f"Content of {controllers_config_folder} after copying: {os.listdir(controllers_config_folder)}")
         conf_file_path = f"{target_conf_folder}/conf/conf_client.yml"
         config = os_utils.read_yaml_file(conf_file_path)
         config['instance_id'] = instance_name
         os_utils.dump_dict_to_yaml(config, conf_file_path)
-        
-        # Log the configuration file content after modification
-        self.log_to_file(f"Content of configuration file {conf_file_path} after modification: {config}", log_file_path)
-
         # TODO: Mount script folder for custom scripts
         create_container_command = ["docker", "run", "-it", "-d", "--log-opt", "max-size=10m", "--log-opt",
                                     "max-file=5",
