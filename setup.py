@@ -10,6 +10,7 @@ setup(
     python_requires=">=3.8",
     install_requires=[
         # Add your dependencies here
+        'os-utils',
     ],
     extras_require={
         "dev": [
