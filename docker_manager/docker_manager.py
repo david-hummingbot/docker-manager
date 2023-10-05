@@ -1,9 +1,9 @@
+import os
 import subprocess
 from typing import Dict, Optional
-import yaml
-
-from docker_manager import os_utils
-
+import filecmp
+import urllib.request
+import os_utils
 
 class DockerManager:
     def __init__(self):
@@ -65,13 +65,27 @@ class DockerManager:
         command = ["docker", "compose", "-p", "hummingbot-broker", "-f",
                    "hummingbot_files/compose_files/broker-compose.yml", "up", "-d", "--remove-orphans"]
         subprocess.Popen(command)
-
+        
+    def verify_and_fetch_missing_files(self, src_dir, target_dir):
+        dir_comparison = filecmp.dircmp(src_dir, target_dir)
+        missing_files = dir_comparison.left_only
+        for missing_file in missing_files:
+            src_url = f'https://raw.githubusercontent.com/hummingbot/dashboard/main/{src_dir}/{missing_file}'
+            target_path = os.path.join(target_dir, missing_file)
+            urllib.request.urlretrieve(src_url, target_path)
+            
     def create_hummingbot_instance(self, instance_name: str,
                                    base_conf_folder: str,
                                    target_conf_folder: str,
                                    controllers_folder: Optional[str] = None,
                                    controllers_config_folder: Optional[str] = None,
+                                   extra_environment_variables: Optional[list] = None,
                                    image: str = "hummingbot/hummingbot:latest"):
+        # Get the current working directory
+        cwd = os.getcwd()
+
+        # Create the target folder within the current working directory
+        target_conf_folder = os.path.join(cwd, target_conf_folder)
         if not os_utils.directory_exists(target_conf_folder):
             create_folder_command = ["mkdir", "-p", target_conf_folder]
             create_folder_task = subprocess.Popen(create_folder_command)
@@ -92,21 +106,27 @@ class DockerManager:
         config = os_utils.read_yaml_file(conf_file_path)
         config['instance_id'] = instance_name
         os_utils.dump_dict_to_yaml(config, conf_file_path)
-        # TODO: Mount script folder for custom scripts
-        create_container_command = ["docker", "run", "-it", "-d", "--log-opt", "max-size=10m", "--log-opt",
-                                    "max-file=5",
-                                    "--name", instance_name,
-                                    "--network", "host",
-                                    "-v", f"./{target_conf_folder}/conf:/home/hummingbot/conf",
-                                    "-v", f"./{target_conf_folder}/conf/connectors:/home/hummingbot/conf/connectors",
-                                    "-v", f"./{target_conf_folder}/conf/strategies:/home/hummingbot/conf/strategies",
-                                    "-v", f"./{target_conf_folder}/logs:/home/hummingbot/logs",
-                                    "-v", f"./{target_conf_folder}/data/:/home/hummingbot/data",
-                                    "-v", f"./{target_conf_folder}/scripts:/home/hummingbot/scripts",
-                                    "-v", f"./{target_conf_folder}/certs:/home/hummingbot/certs",
-                                    "-v", f"./{target_conf_folder}/controllers:/home/hummingbot/hummingbot/smart_components/controllers",
-                                    "-v", f"./{target_conf_folder}/controllers_config:/home/hummingbot/conf/controllers_config",
-                                    "-e", "CONFIG_PASSWORD=a",
-                                    image]
 
-        subprocess.Popen(create_container_command)
+        # TODO: Mount script folder for custom scripts
+        create_container_command = [
+            "docker", "run", "-it", "-d", "--log-opt", "max-size=10m", "--log-opt", "max-file=5",
+            "--name", instance_name,
+            "--network", "host",
+            "-v", f"{target_conf_folder}/conf:/home/hummingbot/conf",
+            "-v", f"{target_conf_folder}/conf/connectors:/home/hummingbot/conf/connectors",
+            "-v", f"{target_conf_folder}/conf/strategies:/home/hummingbot/conf/strategies",
+            "-v", f"{target_conf_folder}/logs:/home/hummingbot/logs",
+            "-v", f"{target_conf_folder}/data/:/home/hummingbot/data",
+            "-v", f"{target_conf_folder}/scripts:/home/hummingbot/scripts",
+            "-v", f"{target_conf_folder}/certs:/home/hummingbot/certs",
+            "-v", f"{target_conf_folder}/controllers:/home/hummingbot/hummingbot/smart_components/controllers",
+            "-v", f"{target_conf_folder}/controllers_config:/home/hummingbot/conf/controllers_config",
+            "-e", "CONFIG_PASSWORD=a",
+            image
+        ]
+
+        create_container_task = subprocess.Popen(create_container_command)
+        create_container_task.wait()
+
+
+                                       
