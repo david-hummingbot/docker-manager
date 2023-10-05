@@ -3,7 +3,7 @@ import subprocess
 from typing import Dict, Optional
 import filecmp
 import urllib.request
-import os_utils
+from . import os_utils
 
 class DockerManager:
     def __init__(self):
