@@ -97,20 +97,20 @@ class DockerManager:
         # TODO: Refactor of this logic that it's a mess now, split between the process that creates the instance from
         # the one that copies the files
         create_container_command = ["docker", "run", "-it", "-d", "--log-opt", "max-size=10m", "--log-opt",
-                                    "max-file=5",
-                                    "--name", instance_name,
-                                    "--network", "host",
-                                    "-v", f"./{target_conf_folder}/conf:/app/hummingbot/conf",
-                                    "-v", f"./{target_conf_folder}/conf/connectors:/app/hummingbot/conf/connectors",
-                                    "-v", f"./{target_conf_folder}/conf/strategies:/app/hummingbot/conf/strategies",
-                                    "-v", f"./{target_conf_folder}/logs:/app/hummingbot/logs",
-                                    "-v", f"./{target_conf_folder}/data/:/app/hummingbot/data",
-                                    "-v", f"./{target_conf_folder}/scripts:/app/hummingbot/scripts",
-                                    "-v", f"./{target_conf_folder}/certs:/app/hummingbot/certs"]
+                            "max-file=5",
+                            "--name", instance_name,
+                            "--network", "host",
+                            "-v", f"./{target_conf_folder}/conf:/app/hummingbot/conf",
+                            "-v", f"./{target_conf_folder}/conf/connectors:/app/hummingbot/conf/connectors",
+                            "-v", f"./{target_conf_folder}/conf/strategies:/app/hummingbot/conf/strategies",
+                            "-v", f"./{target_conf_folder}/logs:/app/hummingbot/logs",
+                            "-v", f"./{target_conf_folder}/data/:/app/hummingbot/data",
+                            "-v", f"./{target_conf_folder}/scripts:/app/hummingbot/scripts",
+                            "-v", f"./{target_conf_folder}/certs:/app/hummingbot/certs"]
         if controllers_folder:
-            create_container_command.extend(["-v", f"./{controllers_folder}:/home/hummingbot/hummingbot/smart_components/controllers"])
+        create_container_command.extend(["-v", f"./{controllers_folder}:/app/hummingbot/smart_components/controllers"])
         if controllers_config_folder:
-            create_container_command.extend(["-v", f"./{controllers_config_folder}:/home/hummingbot/conf/controllers_config"])
+        create_container_command.extend(["-v", f"./{controllers_config_folder}:/app/hummingbot/conf/controllers_config"])       
         create_container_command.extend(["-e", "CONFIG_PASSWORD=a"])
         if extra_environment_variables:
             create_container_command.extend(extra_environment_variables)
